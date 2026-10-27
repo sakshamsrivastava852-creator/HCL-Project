@@ -1,25 +1,241 @@
-<div class="fields-container">
+<div class="page-topbar">
+  <div class="page-topbar-inner">
+    <a routerLink="/" class="brand">
+      <span style="font-size: 1.5rem;">🌾</span>
+      <h1>HarvestHub</h1>
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/" class="nav-link">Dashboard</a>
+      <a routerLink="/farms" class="nav-link">Farms</a>
+      <a routerLink="/fields" class="nav-link active">Fields</a>
+      <a routerLink="/crops" class="nav-link">Crops</a>
+      <a routerLink="/crop-plans" class="nav-link">Crop Plans</a>
+      <a routerLink="/field-operations" class="nav-link">Operations</a>
+      <a routerLink="/profile" class="nav-link">Profile</a>
+    </nav>
+  </div>
+</div>
 
-  <a href="/" class="back-link">← Back to Dashboard</a>
+<div class="module-container">
 
-  <h2>Fields</h2>
-
-  <p>Manage fields belonging to your farms.</p>
-
-  <div class="field-list">
-
-    <div class="field-card" *ngFor="let field of fields">
-
-      <h3>{{ field.name }}</h3>
-
-      <p><strong>Area:</strong> {{ field.area }} acres</p>
-
-      <p><strong>Soil Type:</strong> {{ field.soilType }}</p>
-
-      <p><strong>Field ID:</strong> {{ field.id }}</p>
-
+  <!-- Header -->
+  <div class="module-header">
+    <div class="module-title-area">
+      <a routerLink="/" class="back-breadcrumb">&larr; Return to Dashboard</a>
+      <h2><span>🌱</span> Fields Management</h2>
+      <p>Configure field zones, monitor soil characteristics, and link fields to parent farms.</p>
     </div>
-
+    <button class="btn-primary" id="btn-add-field" (click)="openAddModal()">
+      <span>+</span> Create New Field
+    </button>
   </div>
 
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" 
+             id="search-fields-input"
+             [(ngModel)]="searchTerm" 
+             (input)="applyFilter()" 
+             placeholder="Search fields by name, soil type, or farm..." />
+    </div>
+    <div class="filter-summary">
+      <span>Showing <strong>{{ filteredFields.length }}</strong> of {{ fields.length }} fields</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading fields...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredFields.length === 0" class="empty-state table-card">
+    <div class="empty-icon">🌱</div>
+    <h3>No Fields Found</h3>
+    <p *ngIf="searchTerm">No field matches your query "{{ searchTerm }}".</p>
+    <p *ngIf="!searchTerm">No fields have been partitioned yet. Add your first field to begin crop planning.</p>
+    <button class="btn-primary" (click)="onEmptyStateAction()">
+      {{ searchTerm ? 'Clear Search' : '+ Add First Field' }}
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!isLoading && filteredFields.length > 0" class="table-card">
+    <table class="custom-table" id="fields-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Field Name</th>
+          <th>Parent Farm</th>
+          <th>Acreage</th>
+          <th>Soil Type</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let field of filteredFields" [id]="'field-row-' + field.id">
+          <td><strong class="id-pill">#{{ field.id }}</strong></td>
+          <td>
+            <div class="entity-name">{{ field.name }}</div>
+          </td>
+          <td>
+            <span class="farm-badge" *ngIf="field.farm">
+              🚜 {{ field.farm.name }}
+            </span>
+            <span class="unassigned-badge" *ngIf="!field.farm">Unassigned</span>
+          </td>
+          <td>
+            <span class="area-value">{{ field.area }} acres</span>
+          </td>
+          <td>
+            <span class="soil-badge">{{ field.soilType }}</span>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-buttons">
+              <button class="btn-secondary btn-sm" [id]="'btn-edit-field-' + field.id" (click)="openEditModal(field)">
+                ✏️ Edit
+              </button>
+              <button class="btn-danger btn-sm" [id]="'btn-delete-field-' + field.id" (click)="openDeleteModal(field)">
+                🗑️ Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Modal: Add Field -->
+<div class="modal-overlay" *ngIf="showAddModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Create New Field</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="fieldForm" (ngSubmit)="saveField()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="field-farm">Select Parent Farm *</label>
+          <select id="field-farm" formControlName="farmId">
+            <option value="" disabled>-- Select a Farm --</option>
+            <option *ngFor="let farm of farms" [value]="farm.id">
+              {{ farm.name }} ({{ farm.location }} - {{ farm.totalArea }} acres)
+            </option>
+          </select>
+          <div class="form-error" *ngIf="fieldForm.get('farmId')?.touched && fieldForm.get('farmId')?.invalid">
+            Please assign a farm to this field.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="field-name">Field Name *</label>
+          <input id="field-name" type="text" formControlName="name" placeholder="e.g. North Plot #4" />
+          <div class="form-error" *ngIf="fieldForm.get('name')?.touched && fieldForm.get('name')?.invalid">
+            Field name is required.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="field-area">Area (Acres) *</label>
+            <input id="field-area" type="number" step="0.1" formControlName="area" placeholder="e.g. 10.0" />
+            <div class="form-error" *ngIf="fieldForm.get('area')?.touched && fieldForm.get('area')?.invalid">
+              Valid acreage is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="field-soil">Soil Type *</label>
+            <select id="field-soil" formControlName="soilType">
+              <option *ngFor="let soil of soilTypes" [value]="soil">{{ soil }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-save-field">Create Field</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Edit Field -->
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Field #{{ selectedField?.id }}</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="fieldForm" (ngSubmit)="updateField()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-field-farm">Parent Farm *</label>
+          <select id="edit-field-farm" formControlName="farmId">
+            <option *ngFor="let farm of farms" [value]="farm.id">
+              {{ farm.name }} ({{ farm.location }})
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-field-name">Field Name *</label>
+          <input id="edit-field-name" type="text" formControlName="name" />
+          <div class="form-error" *ngIf="fieldForm.get('name')?.touched && fieldForm.get('name')?.invalid">
+            Field name is required.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-field-area">Area (Acres) *</label>
+            <input id="edit-field-area" type="number" step="0.1" formControlName="area" />
+            <div class="form-error" *ngIf="fieldForm.get('area')?.touched && fieldForm.get('area')?.invalid">
+              Valid area is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-field-soil">Soil Type *</label>
+            <select id="edit-field-soil" formControlName="soilType">
+              <option *ngFor="let soil of soilTypes" [value]="soil">{{ soil }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-update-field">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal-overlay" *ngIf="showDeleteModal">
+  <div class="modal-content">
+    <div class="modal-header" style="background: #fee2e2;">
+      <h3 style="color: #991b1b;">Confirm Deletion</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 1rem; color: #374151; margin-bottom: 12px;">
+        Are you sure you want to delete field <strong>"{{ selectedField?.name }}"</strong> (ID #{{ selectedField?.id }})?
+      </p>
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px; font-size: 0.88rem; color: #9f1239;">
+        ⚠️ This will safely remove this field and cascade deletion of its associated crops, crop plans, and field operations.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete-field" (click)="confirmDelete()">
+        Yes, Delete Field
+      </button>
+    </div>
+  </div>
 </div>

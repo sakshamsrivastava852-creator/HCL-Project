@@ -1,0 +1,255 @@
+<div class="page-topbar">
+  <div class="page-topbar-inner">
+    <a routerLink="/" class="brand">
+      <span style="font-size: 1.5rem;">🌾</span>
+      <h1>HarvestHub</h1>
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/" class="nav-link">Dashboard</a>
+      <a routerLink="/farms" class="nav-link">Farms</a>
+      <a routerLink="/fields" class="nav-link">Fields</a>
+      <a routerLink="/crops" class="nav-link active">Crops</a>
+      <a routerLink="/crop-plans" class="nav-link">Crop Plans</a>
+      <a routerLink="/field-operations" class="nav-link">Operations</a>
+      <a routerLink="/profile" class="nav-link">Profile</a>
+    </nav>
+  </div>
+</div>
+
+<div class="module-container">
+
+  <!-- Header -->
+  <div class="module-header">
+    <div class="module-title-area">
+      <a routerLink="/" class="back-breadcrumb">&larr; Return to Dashboard</a>
+      <h2><span>🌾</span> Crops & Cultivars</h2>
+      <p>Manage crop species, seasonal crop rotations, planting dates, and harvest projections.</p>
+    </div>
+    <button class="btn-primary" id="btn-add-crop" (click)="openAddModal()">
+      <span>+</span> Register New Crop
+    </button>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" 
+             id="search-crops-input"
+             [(ngModel)]="searchTerm" 
+             (input)="applyFilter()" 
+             placeholder="Search crops by name, season, or field..." />
+    </div>
+    <div class="filter-summary">
+      <span>Showing <strong>{{ filteredCrops.length }}</strong> of {{ crops.length }} crops</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading crops catalogue...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredCrops.length === 0" class="empty-state table-card">
+    <div class="empty-icon">🌾</div>
+    <h3>No Crops Found</h3>
+    <p *ngIf="searchTerm">No crop matches your search "{{ searchTerm }}".</p>
+    <p *ngIf="!searchTerm">No crops registered yet. Add wheat, rice, corn, or vegetables to track your harvest.</p>
+    <button class="btn-primary" (click)="onEmptyStateAction()">
+      {{ searchTerm ? 'Clear Search' : '+ Register First Crop' }}
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!isLoading && filteredCrops.length > 0" class="table-card">
+    <table class="custom-table" id="crops-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Crop / Variety</th>
+          <th>Season</th>
+          <th>Allocated Field</th>
+          <th>Planting Date</th>
+          <th>Expected Yield</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let crop of filteredCrops" [id]="'crop-row-' + crop.id">
+          <td><strong class="id-pill">#{{ crop.id }}</strong></td>
+          <td>
+            <div class="entity-name">{{ crop.name }}</div>
+          </td>
+          <td>
+            <span class="season-badge">{{ crop.season }}</span>
+          </td>
+          <td>
+            <span class="field-badge" *ngIf="crop.field">
+              🌱 {{ crop.field.name }}
+            </span>
+            <span class="unassigned-badge" *ngIf="!crop.field">Unassigned</span>
+          </td>
+          <td>
+            <span class="date-val">📅 {{ crop.plantingDate }}</span>
+          </td>
+          <td>
+            <span class="yield-val">{{ crop.expectedYield }} <small>quintals/acre</small></span>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-buttons">
+              <button class="btn-secondary btn-sm" [id]="'btn-edit-crop-' + crop.id" (click)="openEditModal(crop)">
+                ✏️ Edit
+              </button>
+              <button class="btn-danger btn-sm" [id]="'btn-delete-crop-' + crop.id" (click)="openDeleteModal(crop)">
+                🗑️ Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Modal: Add Crop -->
+<div class="modal-overlay" *ngIf="showAddModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Register New Crop</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="cropForm" (ngSubmit)="saveCrop()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="crop-field">Allocated Field *</label>
+          <select id="crop-field" formControlName="fieldId">
+            <option value="" disabled>-- Select a Field --</option>
+            <option *ngFor="let field of fields" [value]="field.id">
+              {{ field.name }} ({{ field.area }} acres - {{ field.soilType }})
+            </option>
+          </select>
+          <div class="form-error" *ngIf="cropForm.get('fieldId')?.touched && cropForm.get('fieldId')?.invalid">
+            Please assign a field to this crop.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="crop-name">Crop Name / Variety *</label>
+          <input id="crop-name" type="text" formControlName="name" placeholder="e.g. Sharbati Wheat, Basmati Rice" />
+          <div class="form-error" *ngIf="cropForm.get('name')?.touched && cropForm.get('name')?.invalid">
+            Crop name is required.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="crop-season">Crop Season *</label>
+            <select id="crop-season" formControlName="season">
+              <option *ngFor="let season of seasons" [value]="season">{{ season }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="crop-yield">Expected Yield *</label>
+            <input id="crop-yield" type="number" step="0.5" formControlName="expectedYield" placeholder="e.g. 40.0" />
+            <div class="form-error" *ngIf="cropForm.get('expectedYield')?.touched && cropForm.get('expectedYield')?.invalid">
+              Yield must be a positive number.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="crop-date">Planting Date *</label>
+          <input id="crop-date" type="date" formControlName="plantingDate" />
+          <div class="form-error" *ngIf="cropForm.get('plantingDate')?.touched && cropForm.get('plantingDate')?.invalid">
+            Planting date is required.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-save-crop">Register Crop</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Edit Crop -->
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Crop #{{ selectedCrop?.id }}</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="cropForm" (ngSubmit)="updateCrop()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-crop-field">Allocated Field *</label>
+          <select id="edit-crop-field" formControlName="fieldId">
+            <option *ngFor="let field of fields" [value]="field.id">
+              {{ field.name }} ({{ field.area }} acres)
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-crop-name">Crop Name *</label>
+          <input id="edit-crop-name" type="text" formControlName="name" />
+          <div class="form-error" *ngIf="cropForm.get('name')?.touched && cropForm.get('name')?.invalid">
+            Crop name is required.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-crop-season">Season *</label>
+            <select id="edit-crop-season" formControlName="season">
+              <option *ngFor="let season of seasons" [value]="season">{{ season }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-crop-yield">Expected Yield *</label>
+            <input id="edit-crop-yield" type="number" step="0.5" formControlName="expectedYield" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-crop-date">Planting Date *</label>
+          <input id="edit-crop-date" type="date" formControlName="plantingDate" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-update-crop">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal-overlay" *ngIf="showDeleteModal">
+  <div class="modal-content">
+    <div class="modal-header" style="background: #fee2e2;">
+      <h3 style="color: #991b1b;">Confirm Deletion</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 1rem; color: #374151; margin-bottom: 12px;">
+        Are you sure you want to remove crop <strong>"{{ selectedCrop?.name }}"</strong> (ID #{{ selectedCrop?.id }})?
+      </p>
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px; font-size: 0.88rem; color: #9f1239;">
+        ⚠️ This will safely remove this crop record and clear associated crop plan references.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete-crop" (click)="confirmDelete()">
+        Yes, Delete Crop
+      </button>
+    </div>
+  </div>
+</div>

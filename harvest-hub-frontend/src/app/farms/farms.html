@@ -1,25 +1,210 @@
-<div class="farms-container">
+<div class="page-topbar">
+  <div class="page-topbar-inner">
+    <a routerLink="/" class="brand">
+      <span style="font-size: 1.5rem;">🌾</span>
+      <h1>HarvestHub</h1>
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/" class="nav-link">Dashboard</a>
+      <a routerLink="/farms" class="nav-link active">Farms</a>
+      <a routerLink="/fields" class="nav-link">Fields</a>
+      <a routerLink="/crops" class="nav-link">Crops</a>
+      <a routerLink="/crop-plans" class="nav-link">Crop Plans</a>
+      <a routerLink="/field-operations" class="nav-link">Operations</a>
+      <a routerLink="/profile" class="nav-link">Profile</a>
+    </nav>
+  </div>
+</div>
 
-  <a href="/" class="back-link">← Back to Dashboard</a>
+<div class="module-container">
 
-  <h2>Farms</h2>
-
-  <p>Manage your farms and their details.</p>
-
-  <div class="farm-list">
-
-    <div class="farm-card" *ngFor="let farm of farms">
-
-      <h3>{{ farm.name }}</h3>
-
-      <p><strong>Location:</strong> {{ farm.location }}</p>
-
-      <p><strong>Total Area:</strong> {{ farm.totalArea }} acres</p>
-
-      <p><strong>Farm ID:</strong> {{ farm.id }}</p>
-
+  <!-- Header -->
+  <div class="module-header">
+    <div class="module-title-area">
+      <a routerLink="/" class="back-breadcrumb">&larr; Return to Dashboard</a>
+      <h2><span>🚜</span> Farms Management</h2>
+      <p>Register agricultural estates, track acreage, and manage operational sites.</p>
     </div>
-
+    <button class="btn-primary" id="btn-add-farm" (click)="openAddModal()">
+      <span>+</span> Register New Farm
+    </button>
   </div>
 
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" 
+             id="search-farms-input"
+             [(ngModel)]="searchTerm" 
+             (input)="applyFilter()" 
+             placeholder="Search farms by name, location..." />
+    </div>
+    <div class="filter-summary">
+      <span>Showing <strong>{{ filteredFarms.length }}</strong> of {{ farms.length }} farms</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading farms data...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredFarms.length === 0" class="empty-state table-card">
+    <div class="empty-icon">🚜</div>
+    <h3>No Farms Found</h3>
+    <p *ngIf="searchTerm">No farm matched your search "{{ searchTerm }}".</p>
+    <p *ngIf="!searchTerm">You have not registered any farms yet. Start by adding your first estate.</p>
+    <button class="btn-primary" (click)="onEmptyStateAction()">
+      {{ searchTerm ? 'Clear Search' : '+ Register First Farm' }}
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!isLoading && filteredFarms.length > 0" class="table-card">
+    <table class="custom-table" id="farms-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Farm Name</th>
+          <th>Location</th>
+          <th>Total Acreage</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let farm of filteredFarms" [id]="'farm-row-' + farm.id">
+          <td><strong class="id-pill">#{{ farm.id }}</strong></td>
+          <td>
+            <div class="entity-name">{{ farm.name }}</div>
+          </td>
+          <td>
+            <span class="location-badge">📍 {{ farm.location }}</span>
+          </td>
+          <td>
+            <span class="area-value">{{ farm.totalArea }} acres</span>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-buttons">
+              <button class="btn-secondary btn-sm" [id]="'btn-edit-farm-' + farm.id" (click)="openEditModal(farm)">
+                ✏️ Edit
+              </button>
+              <button class="btn-danger btn-sm" [id]="'btn-delete-farm-' + farm.id" (click)="openDeleteModal(farm)">
+                🗑️ Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Modal: Add Farm -->
+<div class="modal-overlay" *ngIf="showAddModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Register New Farm</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="farmForm" (ngSubmit)="saveFarm()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="farm-name">Farm Name *</label>
+          <input id="farm-name" type="text" formControlName="name" placeholder="e.g. Green Valley Estate" />
+          <div class="form-error" *ngIf="farmForm.get('name')?.touched && farmForm.get('name')?.invalid">
+            Please enter a valid farm name (minimum 2 characters).
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="farm-location">Geographic Location / City *</label>
+          <input id="farm-location" type="text" formControlName="location" placeholder="e.g. Ghaziabad, Uttar Pradesh" />
+          <div class="form-error" *ngIf="farmForm.get('location')?.touched && farmForm.get('location')?.invalid">
+            Location is required.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="farm-area">Total Area (Acres) *</label>
+          <input id="farm-area" type="number" step="0.1" formControlName="totalArea" placeholder="e.g. 25.5" />
+          <div class="form-error" *ngIf="farmForm.get('totalArea')?.touched && farmForm.get('totalArea')?.invalid">
+            Please enter a positive area in acres.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-save-farm">Register Farm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Edit Farm -->
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Farm #{{ selectedFarm?.id }}</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="farmForm" (ngSubmit)="updateFarm()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-farm-name">Farm Name *</label>
+          <input id="edit-farm-name" type="text" formControlName="name" />
+          <div class="form-error" *ngIf="farmForm.get('name')?.touched && farmForm.get('name')?.invalid">
+            Please enter a valid farm name.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-farm-location">Geographic Location *</label>
+          <input id="edit-farm-location" type="text" formControlName="location" />
+          <div class="form-error" *ngIf="farmForm.get('location')?.touched && farmForm.get('location')?.invalid">
+            Location is required.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-farm-area">Total Area (Acres) *</label>
+          <input id="edit-farm-area" type="number" step="0.1" formControlName="totalArea" />
+          <div class="form-error" *ngIf="farmForm.get('totalArea')?.touched && farmForm.get('totalArea')?.invalid">
+            Please enter a positive area.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-update-farm">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal-overlay" *ngIf="showDeleteModal">
+  <div class="modal-content">
+    <div class="modal-header" style="background: #fee2e2;">
+      <h3 style="color: #991b1b;">Confirm Deletion</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 1rem; color: #374151; margin-bottom: 12px;">
+        Are you sure you want to delete farm <strong>"{{ selectedFarm?.name }}"</strong> (ID #{{ selectedFarm?.id }})?
+      </p>
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px; font-size: 0.88rem; color: #9f1239;">
+        ⚠️ This will safely remove this farm and cascade deletion of its associated fields, crop plans, and operations.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete-farm" (click)="confirmDelete()">
+        Yes, Delete Farm
+      </button>
+    </div>
+  </div>
 </div>

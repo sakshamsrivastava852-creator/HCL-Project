@@ -1,12 +1,26 @@
 <div class="app-container">
 
+  <!-- Header -->
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <h1>🌾 HarvestHub</h1>
-        <p>Farm Management System</p>
+        <span class="brand-icon">🌾</span>
+        <div>
+          <h1>HarvestHub</h1>
+          <p>Smart Farm Management System</p>
+        </div>
       </div>
-      <a routerLink="/profile" class="profile-link">
+
+      <nav class="nav-links">
+        <a routerLink="/" class="nav-item active">Dashboard</a>
+        <a routerLink="/farms" class="nav-item">Farms</a>
+        <a routerLink="/fields" class="nav-item">Fields</a>
+        <a routerLink="/crops" class="nav-item">Crops</a>
+        <a routerLink="/crop-plans" class="nav-item">Crop Plans</a>
+        <a routerLink="/field-operations" class="nav-item">Operations</a>
+      </nav>
+
+      <a routerLink="/profile" class="profile-link" id="nav-profile-link">
         <span class="profile-avatar">👤</span>
         <span class="profile-name">{{ userName }}</span>
         <span class="profile-caret">▾</span>
@@ -16,50 +30,163 @@
 
   <main class="dashboard">
 
-    <section class="welcome">
-      <h2>Welcome to HarvestHub</h2>
-      <p>Manage your farms, fields, crops, crop plans, and field operations.</p>
+    <!-- Hero Banner with Live KPIs -->
+    <section class="hero-banner">
+      <div class="hero-content">
+        <div class="hero-text">
+          <span class="badge-tag">Farm Operations Center</span>
+          <h2>Welcome back, {{ userName }}!</h2>
+          <p>Real-time oversight of your farms, crop cycles, acreage, and automated field operations.</p>
+        </div>
+        <div class="quick-actions">
+          <a routerLink="/farms" class="qa-btn qa-primary" id="btn-qa-farm">
+            <span>🚜</span> Register Farm
+          </a>
+          <a routerLink="/crop-plans" class="qa-btn qa-secondary" id="btn-qa-plan">
+            <span>📋</span> New Crop Plan
+          </a>
+          <a routerLink="/field-operations" class="qa-btn qa-accent" id="btn-qa-operation">
+            <span>⚙️</span> Log Operation
+          </a>
+        </div>
+      </div>
+
+      <!-- Live KPI Metrics Grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon">🚜</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Farms</span>
+            <span class="kpi-value">{{ stats.totalFarms }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">🌱</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Cultivated Fields</span>
+            <span class="kpi-value">{{ stats.totalFields }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">📐</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Total Acreage</span>
+            <span class="kpi-value">{{ stats.totalArea }} <small>acres</small></span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">🌾</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Registered Crops</span>
+            <span class="kpi-value">{{ stats.totalCrops }}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card highlight-green">
+          <div class="kpi-icon">📋</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Active Plans</span>
+            <span class="kpi-value">{{ stats.activeCropPlans }} <small>/ {{ stats.totalCropPlans }}</small></span>
+          </div>
+        </div>
+
+        <div class="kpi-card highlight-amber">
+          <div class="kpi-icon">⚙️</div>
+          <div class="kpi-info">
+            <span class="kpi-label">Pending / Active Ops</span>
+            <span class="kpi-value">{{ stats.ongoingOperations }} <small>/ {{ stats.totalOperations }}</small></span>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="cards">
-
-      <div class="card">
-        <div class="card-icon">🚜</div>
-        <h3>Farms</h3>
-        <p>Manage your farms and their details.</p>
-        
-        <button routerLink="/farms">View Farms</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">🌱</div>
-        <h3>Fields</h3>
-        <p>Manage fields belonging to your farms.</p>
-        <button routerLink="/fields">View Fields</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">🌾</div>
-        <h3>Crops</h3>
-        <p>Manage crops planted in your fields.</p>
-        <button>View Crops</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">📋</div>
-        <h3>Crop Plans</h3>
-        <p>Plan crop activities and growing seasons.</p>
-        <button>View Crop Plans</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">⚙️</div>
-        <h3>Field Operations</h3>
-        <p>Track operations performed on your fields.</p>
-        <button>View Operations</button>
-      </div>
-
+    <!-- 5 Core Module Cards -->
+    <section class="section-title">
+      <h3>Core Management Domains</h3>
+      <p>Direct access to entity control, real-time tracking, and relational operations</p>
     </section>
+
+    <div class="cards-grid">
+
+      <!-- Farms -->
+      <div class="module-card">
+        <div class="mc-header">
+          <div class="mc-icon">🚜</div>
+          <span class="mc-badge">{{ stats.totalFarms }} Farms</span>
+        </div>
+        <h4>Farms Management</h4>
+        <p>Oversee registered estates, geographical coordinates, and aggregated property boundaries.</p>
+        <div class="mc-footer">
+          <a routerLink="/farms" class="mc-action-btn" id="btn-view-farms">
+            Manage Farms &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Fields -->
+      <div class="module-card">
+        <div class="mc-header">
+          <div class="mc-icon">🌱</div>
+          <span class="mc-badge">{{ stats.totalFields }} Fields</span>
+        </div>
+        <h4>Field Parcels</h4>
+        <p>Track soil chemistry, acreage allocation, and parental farm partitioning.</p>
+        <div class="mc-footer">
+          <a routerLink="/fields" class="mc-action-btn" id="btn-view-fields">
+            Manage Fields &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Crops -->
+      <div class="module-card">
+        <div class="mc-header">
+          <div class="mc-icon">🌾</div>
+          <span class="mc-badge">{{ stats.totalCrops }} Crops</span>
+        </div>
+        <h4>Crops & Cultivars</h4>
+        <p>Monitor seasonal varieties (Rabi, Kharif, Zaid), planting schedules, and expected yields.</p>
+        <div class="mc-footer">
+          <a routerLink="/crops" class="mc-action-btn" id="btn-view-crops">
+            Manage Crops &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Crop Plans -->
+      <div class="module-card">
+        <div class="mc-header">
+          <div class="mc-icon">📋</div>
+          <span class="mc-badge">{{ stats.totalCropPlans }} Plans</span>
+        </div>
+        <h4>Crop Cycles & Plans</h4>
+        <p>Schedule seasonal crop workflows, track growth phases, and enforce status milestones.</p>
+        <div class="mc-footer">
+          <a routerLink="/crop-plans" class="mc-action-btn" id="btn-view-crop-plans">
+            Manage Crop Plans &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Field Operations -->
+      <div class="module-card">
+        <div class="mc-header">
+          <div class="mc-icon">⚙️</div>
+          <span class="mc-badge">{{ stats.totalOperations }} Operations</span>
+        </div>
+        <h4>Field Operations</h4>
+        <p>Log tillage, irrigation, fertilizing, spraying, and harvesting with automated cost tracking.</p>
+        <div class="mc-footer">
+          <a routerLink="/field-operations" class="mc-action-btn" id="btn-view-operations">
+            Track Operations &rarr;
+          </a>
+        </div>
+      </div>
+
+    </div>
 
   </main>
 

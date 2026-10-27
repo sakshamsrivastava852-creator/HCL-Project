@@ -1,0 +1,302 @@
+<div class="page-topbar">
+  <div class="page-topbar-inner">
+    <a routerLink="/" class="brand">
+      <span style="font-size: 1.5rem;">🌾</span>
+      <h1>HarvestHub</h1>
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/" class="nav-link">Dashboard</a>
+      <a routerLink="/farms" class="nav-link">Farms</a>
+      <a routerLink="/fields" class="nav-link">Fields</a>
+      <a routerLink="/crops" class="nav-link">Crops</a>
+      <a routerLink="/crop-plans" class="nav-link active">Crop Plans</a>
+      <a routerLink="/field-operations" class="nav-link">Operations</a>
+      <a routerLink="/profile" class="nav-link">Profile</a>
+    </nav>
+  </div>
+</div>
+
+<div class="module-container">
+
+  <!-- Header -->
+  <div class="module-header">
+    <div class="module-title-area">
+      <a routerLink="/" class="back-breadcrumb">&larr; Return to Dashboard</a>
+      <h2><span>📋</span> Crop Plans & Cycles</h2>
+      <p>Schedule seasonal cycles, assign cultivars to target fields, and enforce progression status.</p>
+    </div>
+    <button class="btn-primary" id="btn-add-crop-plan" (click)="openAddModal()">
+      <span>+</span> Create Crop Plan
+    </button>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" 
+             id="search-plans-input"
+             [(ngModel)]="searchTerm" 
+             (input)="applyFilter()" 
+             placeholder="Search by plan name, season, crop, or field..." />
+    </div>
+
+    <!-- Quick Status Filter Pills -->
+    <div class="status-filter-pills">
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'ALL'" (click)="setStatusFilter('ALL')">All</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'PLANNED'" (click)="setStatusFilter('PLANNED')">Planned</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'IN_PROGRESS'" (click)="setStatusFilter('IN_PROGRESS')">In Progress</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'COMPLETED'" (click)="setStatusFilter('COMPLETED')">Completed</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'CANCELLED'" (click)="setStatusFilter('CANCELLED')">Cancelled</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading crop schedules...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredPlans.length === 0" class="empty-state table-card">
+    <div class="empty-icon">📋</div>
+    <h3>No Crop Plans Found</h3>
+    <p *ngIf="searchTerm || selectedStatusFilter !== 'ALL'">
+      No plan matches your active filters. Try clearing the filter.
+    </p>
+    <p *ngIf="!searchTerm && selectedStatusFilter === 'ALL'">
+      No crop plans created yet. Plan your next harvest cycle now.
+    </p>
+    <button class="btn-primary" (click)="searchTerm = ''; selectedStatusFilter = 'ALL'; applyFilter()">
+      Reset Filters
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!isLoading && filteredPlans.length > 0" class="table-card">
+    <table class="custom-table" id="crop-plans-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Plan Name</th>
+          <th>Crop Variety</th>
+          <th>Target Field</th>
+          <th>Season</th>
+          <th>Timeline (Start - End)</th>
+          <th>Status (Click to toggle)</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let plan of filteredPlans" [id]="'crop-plan-row-' + plan.id">
+          <td><strong class="id-pill">#{{ plan.id }}</strong></td>
+          <td>
+            <div class="entity-name">{{ plan.planName }}</div>
+          </td>
+          <td>
+            <span class="crop-badge" *ngIf="plan.crop">🌾 {{ plan.crop.name }}</span>
+            <span class="unassigned-badge" *ngIf="!plan.crop">Unassigned</span>
+          </td>
+          <td>
+            <span class="field-badge" *ngIf="plan.field">🌱 {{ plan.field.name }}</span>
+            <span class="unassigned-badge" *ngIf="!plan.field">Unassigned</span>
+          </td>
+          <td>
+            <span class="season-badge">{{ plan.season }}</span>
+          </td>
+          <td>
+            <span class="date-range">📅 {{ plan.startDate }} &rarr; {{ plan.endDate }}</span>
+          </td>
+          <td>
+            <button class="status-badge badge-{{ plan.status }}"
+                    [id]="'btn-status-plan-' + plan.id"
+                    (click)="cycleStatus(plan, $event)"
+                    title="Click to advance status">
+              <span *ngIf="plan.status === 'PLANNED'">🔵 Planned</span>
+              <span *ngIf="plan.status === 'IN_PROGRESS'">🟡 In Progress</span>
+              <span *ngIf="plan.status === 'COMPLETED'">🟢 Completed</span>
+              <span *ngIf="plan.status === 'CANCELLED'">🔴 Cancelled</span>
+              <small style="opacity: 0.7; margin-left: 2px;">↻</small>
+            </button>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-buttons">
+              <button class="btn-secondary btn-sm" [id]="'btn-edit-plan-' + plan.id" (click)="openEditModal(plan)">
+                ✏️ Edit
+              </button>
+              <button class="btn-danger btn-sm" [id]="'btn-delete-plan-' + plan.id" (click)="openDeleteModal(plan)">
+                🗑️ Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Modal: Add Crop Plan -->
+<div class="modal-overlay" *ngIf="showAddModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Create Crop Plan</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="planForm" (ngSubmit)="savePlan()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="plan-name">Plan Title *</label>
+          <input id="plan-name" type="text" formControlName="planName" placeholder="e.g. Rabi Wheat Growth Schedule" />
+          <div class="form-error" *ngIf="planForm.get('planName')?.touched && planForm.get('planName')?.invalid">
+            Plan title is required.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="plan-field">Target Field *</label>
+            <select id="plan-field" formControlName="fieldId">
+              <option value="" disabled>-- Select Field --</option>
+              <option *ngFor="let field of fields" [value]="field.id">
+                {{ field.name }} ({{ field.area }} acres)
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="plan-crop">Target Crop *</label>
+            <select id="plan-crop" formControlName="cropId">
+              <option value="" disabled>-- Select Crop --</option>
+              <option *ngFor="let crop of crops" [value]="crop.id">
+                {{ crop.name }} ({{ crop.season }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="plan-season">Growing Season *</label>
+            <select id="plan-season" formControlName="season">
+              <option *ngFor="let season of seasons" [value]="season">{{ season }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="plan-status">Initial Status *</label>
+            <select id="plan-status" formControlName="status">
+              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="plan-start">Start Date *</label>
+            <input id="plan-start" type="date" formControlName="startDate" />
+          </div>
+
+          <div class="form-group">
+            <label for="plan-end">Estimated End Date *</label>
+            <input id="plan-end" type="date" formControlName="endDate" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-save-plan">Create Plan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Edit Crop Plan -->
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Crop Plan #{{ selectedPlan?.id }}</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="planForm" (ngSubmit)="updatePlan()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-plan-name">Plan Title *</label>
+          <input id="edit-plan-name" type="text" formControlName="planName" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-plan-field">Target Field *</label>
+            <select id="edit-plan-field" formControlName="fieldId">
+              <option *ngFor="let field of fields" [value]="field.id">{{ field.name }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-plan-crop">Target Crop *</label>
+            <select id="edit-plan-crop" formControlName="cropId">
+              <option *ngFor="let crop of crops" [value]="crop.id">{{ crop.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-plan-season">Season *</label>
+            <select id="edit-plan-season" formControlName="season">
+              <option *ngFor="let season of seasons" [value]="season">{{ season }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-plan-status">Status *</label>
+            <select id="edit-plan-status" formControlName="status">
+              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-plan-start">Start Date *</label>
+            <input id="edit-plan-start" type="date" formControlName="startDate" />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-plan-end">End Date *</label>
+            <input id="edit-plan-end" type="date" formControlName="endDate" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-update-plan">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal-overlay" *ngIf="showDeleteModal">
+  <div class="modal-content">
+    <div class="modal-header" style="background: #fee2e2;">
+      <h3 style="color: #991b1b;">Confirm Plan Deletion</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 1rem; color: #374151; margin-bottom: 12px;">
+        Are you sure you want to delete crop plan <strong>"{{ selectedPlan?.planName }}"</strong> (ID #{{ selectedPlan?.id }})?
+      </p>
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px; font-size: 0.88rem; color: #9f1239;">
+        ⚠️ Any logged operations attached to this plan will remain intact with their field link preserved.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete-plan" (click)="confirmDelete()">
+        Yes, Delete Plan
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,16 +1,13 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { FieldService } from "../services/field.service";
+import { Field as FieldModel } from "../models/field.model";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root"
 })
-export class Field {
-
-  private apiUrl = 'http://localhost:8080/api/fields';
-
-  constructor(private http: HttpClient) {}
-
-  getFields() {
-    return this.http.get<any[]>(this.apiUrl);
+export class Field extends FieldService {
+  constructor(http: HttpClient) {
+    super(http);
   }
 }

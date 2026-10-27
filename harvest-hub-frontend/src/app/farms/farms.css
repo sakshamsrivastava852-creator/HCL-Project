@@ -1,65 +1,77 @@
-.farms-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 40px 30px;
-  font-family: Arial, sans-serif;
-  color: #263528;
-}
-
-.back-link {
-  color: #2f6b3f;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
+.back-breadcrumb {
   display: inline-block;
-  margin-bottom: 16px;
-  transition: opacity 0.2s ease;
+  color: var(--primary-700);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: color 0.2s;
 }
 
-.back-link:hover {
-  opacity: 0.7;
+.back-breadcrumb:hover {
+  color: var(--primary-900);
 }
 
-.farms-container h2 {
-  font-size: 28px;
-  margin: 0 0 8px;
-  color: #263528;
+.filter-summary {
+  font-size: 0.9rem;
+  color: var(--neutral-600);
 }
 
-.farms-container > p {
-  color: #647064;
-  margin-bottom: 28px;
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 16px;
+  color: var(--neutral-600);
 }
 
-.farm-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+.spinner {
+  width: 38px;
+  height: 38px;
+  border: 4px solid var(--neutral-200);
+  border-top-color: var(--primary-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-.farm-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  border-left: 4px solid #2f6b3f;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-.farm-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+.id-pill {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
 }
 
-.farm-card h3 {
-  margin: 0 0 12px;
-  font-size: 20px;
-  color: #2f6b3f;
+.entity-name {
+  font-weight: 600;
+  color: var(--neutral-900);
+  font-size: 0.98rem;
 }
 
-.farm-card p {
-  margin: 6px 0;
-  color: #4a5a4a;
-  font-size: 14px;
-  line-height: 1.5;
+.location-badge {
+  background: #f0fdf4;
+  color: #166534;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #bbf7d0;
+}
+
+.area-value {
+  font-weight: 700;
+  color: var(--primary-800);
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }

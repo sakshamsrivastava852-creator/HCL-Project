@@ -1,16 +1,14 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { FarmService } from "../services/farm.service";
+
+export { FarmService };
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root"
 })
-export class Farm {
-
-  private apiUrl = 'http://localhost:8080/api/farms';
-
-  constructor(private http: HttpClient) {}
-
-  getFarms() {
-    return this.http.get<any[]>(this.apiUrl);
+export class Farm extends FarmService {
+  constructor(http: HttpClient) {
+    super(http);
   }
 }

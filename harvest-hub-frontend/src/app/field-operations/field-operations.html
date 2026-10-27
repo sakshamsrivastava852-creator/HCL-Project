@@ -1,0 +1,303 @@
+<div class="page-topbar">
+  <div class="page-topbar-inner">
+    <a routerLink="/" class="brand">
+      <span style="font-size: 1.5rem;">🌾</span>
+      <h1>HarvestHub</h1>
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/" class="nav-link">Dashboard</a>
+      <a routerLink="/farms" class="nav-link">Farms</a>
+      <a routerLink="/fields" class="nav-link">Fields</a>
+      <a routerLink="/crops" class="nav-link">Crops</a>
+      <a routerLink="/crop-plans" class="nav-link">Crop Plans</a>
+      <a routerLink="/field-operations" class="nav-link active">Operations</a>
+      <a routerLink="/profile" class="nav-link">Profile</a>
+    </nav>
+  </div>
+</div>
+
+<div class="module-container">
+
+  <!-- Header -->
+  <div class="module-header">
+    <div class="module-title-area">
+      <a routerLink="/" class="back-breadcrumb">&larr; Return to Dashboard</a>
+      <h2><span>⚙️</span> Field Operations & Task Log</h2>
+      <p>Log agricultural field work, track operating expenses, and audit task completion milestones.</p>
+    </div>
+    <button class="btn-primary" id="btn-add-operation" (click)="openAddModal()">
+      <span>+</span> Log Field Operation
+    </button>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" 
+             id="search-ops-input"
+             [(ngModel)]="searchTerm" 
+             (input)="applyFilter()" 
+             placeholder="Search by operation type, description, field, or plan..." />
+    </div>
+
+    <!-- Quick Status Filter Pills -->
+    <div class="status-filter-pills">
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'ALL'" (click)="setStatusFilter('ALL')">All</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'PLANNED'" (click)="setStatusFilter('PLANNED')">Planned</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'IN_PROGRESS'" (click)="setStatusFilter('IN_PROGRESS')">In Progress</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'COMPLETED'" (click)="setStatusFilter('COMPLETED')">Completed</button>
+      <button class="status-pill" [class.active]="selectedStatusFilter === 'CANCELLED'" (click)="setStatusFilter('CANCELLED')">Cancelled</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading field operations log...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredOps.length === 0" class="empty-state table-card">
+    <div class="empty-icon">⚙️</div>
+    <h3>No Field Operations Found</h3>
+    <p *ngIf="searchTerm || selectedStatusFilter !== 'ALL'">
+      No operation matched your filter criteria.
+    </p>
+    <p *ngIf="!searchTerm && selectedStatusFilter === 'ALL'">
+      No operations have been logged yet. Start recording your tillage, fertilization, and harvest tasks.
+    </p>
+    <button class="btn-primary" (click)="searchTerm = ''; selectedStatusFilter = 'ALL'; applyFilter()">
+      Reset Filters
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div *ngIf="!isLoading && filteredOps.length > 0" class="table-card">
+    <table class="custom-table" id="operations-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Operation Type</th>
+          <th>Target Field</th>
+          <th>Linked Plan</th>
+          <th>Scheduled Date</th>
+          <th>Operating Cost</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let op of filteredOps" [id]="'operation-row-' + op.id">
+          <td><strong class="id-pill">#{{ op.id }}</strong></td>
+          <td>
+            <div class="entity-name">{{ op.operationType }}</div>
+            <div class="op-desc" *ngIf="op.description">{{ op.description }}</div>
+          </td>
+          <td>
+            <span class="field-badge" *ngIf="op.field">🌱 {{ op.field.name }}</span>
+            <span class="unassigned-badge" *ngIf="!op.field">Unassigned</span>
+          </td>
+          <td>
+            <span class="plan-badge" *ngIf="op.cropPlan">📋 {{ op.cropPlan.planName }}</span>
+            <span class="unassigned-badge" *ngIf="!op.cropPlan">General Task</span>
+          </td>
+          <td>
+            <span class="date-val">📅 {{ op.operationDate }}</span>
+          </td>
+          <td>
+            <span class="cost-badge">${{ op.cost }}</span>
+          </td>
+          <td>
+            <button class="status-badge badge-{{ op.status }}"
+                    [id]="'btn-status-op-' + op.id"
+                    (click)="cycleStatus(op, $event)"
+                    title="Click to advance status">
+              <span *ngIf="op.status === 'PLANNED'">🔵 Planned</span>
+              <span *ngIf="op.status === 'IN_PROGRESS'">🟡 In Progress</span>
+              <span *ngIf="op.status === 'COMPLETED'">🟢 Completed</span>
+              <span *ngIf="op.status === 'CANCELLED'">🔴 Cancelled</span>
+              <small style="opacity: 0.7; margin-left: 2px;">↻</small>
+            </button>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-buttons">
+              <button class="btn-secondary btn-sm" [id]="'btn-edit-op-' + op.id" (click)="openEditModal(op)">
+                ✏️ Edit
+              </button>
+              <button class="btn-danger btn-sm" [id]="'btn-delete-op-' + op.id" (click)="openDeleteModal(op)">
+                🗑️ Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Modal: Add Operation -->
+<div class="modal-overlay" *ngIf="showAddModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Log Field Operation</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="opForm" (ngSubmit)="saveOperation()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="op-type">Operation Type *</label>
+          <select id="op-type" formControlName="operationType">
+            <option *ngFor="let type of operationTypes" [value]="type">{{ type }}</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="op-field">Target Field *</label>
+            <select id="op-field" formControlName="fieldId">
+              <option value="" disabled>-- Select Field --</option>
+              <option *ngFor="let field of fields" [value]="field.id">
+                {{ field.name }} ({{ field.area }} acres)
+              </option>
+            </select>
+            <div class="form-error" *ngIf="opForm.get('fieldId')?.touched && opForm.get('fieldId')?.invalid">
+              Field is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="op-plan">Linked Crop Plan (Optional)</label>
+            <select id="op-plan" formControlName="cropPlanId">
+              <option value="">-- No specific plan --</option>
+              <option *ngFor="let plan of cropPlans" [value]="plan.id">
+                {{ plan.planName }} ({{ plan.season }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="op-date">Operation Date *</label>
+            <input id="op-date" type="date" formControlName="operationDate" />
+            <div class="form-error" *ngIf="opForm.get('operationDate')?.touched && opForm.get('operationDate')?.invalid">
+              Date is required.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="op-cost">Cost ($/₹) *</label>
+            <input id="op-cost" type="number" step="10" formControlName="cost" placeholder="e.g. 500" />
+            <div class="form-error" *ngIf="opForm.get('cost')?.touched && opForm.get('cost')?.invalid">
+              Cost must be 0 or greater.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="op-status">Status *</label>
+          <select id="op-status" formControlName="status">
+            <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="op-desc">Task Notes / Description</label>
+          <textarea id="op-desc" rows="3" formControlName="description" placeholder="Specific details, equipment used, weather conditions..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-save-op">Log Operation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Edit Operation -->
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Operation #{{ selectedOp?.id }}</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <form [formGroup]="opForm" (ngSubmit)="updateOperation()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-op-type">Operation Type *</label>
+          <select id="edit-op-type" formControlName="operationType">
+            <option *ngFor="let type of operationTypes" [value]="type">{{ type }}</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-op-field">Target Field *</label>
+            <select id="edit-op-field" formControlName="fieldId">
+              <option *ngFor="let field of fields" [value]="field.id">{{ field.name }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-op-plan">Linked Crop Plan</label>
+            <select id="edit-op-plan" formControlName="cropPlanId">
+              <option value="">-- No specific plan --</option>
+              <option *ngFor="let plan of cropPlans" [value]="plan.id">{{ plan.planName }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-op-date">Date *</label>
+            <input id="edit-op-date" type="date" formControlName="operationDate" />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-op-cost">Cost *</label>
+            <input id="edit-op-cost" type="number" step="10" formControlName="cost" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-op-status">Status *</label>
+          <select id="edit-op-status" formControlName="status">
+            <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-op-desc">Notes</label>
+          <textarea id="edit-op-desc" rows="3" formControlName="description"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-update-op">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal-overlay" *ngIf="showDeleteModal">
+  <div class="modal-content">
+    <div class="modal-header" style="background: #fee2e2;">
+      <h3 style="color: #991b1b;">Confirm Deletion</h3>
+      <button class="modal-close-btn" (click)="closeModals()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 1rem; color: #374151; margin-bottom: 12px;">
+        Are you sure you want to delete operation <strong>"{{ selectedOp?.operationType }}"</strong> (ID #{{ selectedOp?.id }})?
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">Cancel</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete-op" (click)="confirmDelete()">
+        Yes, Delete Operation
+      </button>
+    </div>
+  </div>
+</div>
