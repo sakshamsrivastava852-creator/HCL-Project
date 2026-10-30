@@ -1,0 +1,6 @@
+target/
+.git/
+.mvn/
+*.md
+.DS_Store
+
